@@ -86,13 +86,46 @@ class _QuizPageState extends State<QuizPage> {
     await _viewModel.joinRoom(widget.roomId);
   }
 
-  Future<int?> _showSpinWheelDialog(BuildContext context) {
-    return showDialog<int>(
+  Future<int?> _showSpinWheelDialog(BuildContext context) async {
+    if (_isWheelSpinning || _wheelBalance <= 0) {
+      return null;
+    }
+
+    setState(() {
+      _isWheelSpinning = true;
+    });
+
+    final selectedMultiplier = await showDialog<int>(
       context: context,
       useRootNavigator: true,
       barrierDismissible: false,
       builder: (_) => const SpinWheelDialog(),
     );
+
+    if (!mounted) {
+      return selectedMultiplier;
+    }
+
+    if (selectedMultiplier != null) {
+      setState(() {
+        _isWheelSpinning = false;
+        _lastWheelMultiplier = selectedMultiplier;
+        _wheelBalance = _wheelBalance > 0 ? _wheelBalance - 1 : 0;
+      });
+
+      Future.delayed(const Duration(seconds: 3), () {
+        if (!mounted) return;
+        setState(() {
+          _lastWheelMultiplier = null;
+        });
+      });
+    } else {
+      setState(() {
+        _isWheelSpinning = false;
+      });
+    }
+
+    return selectedMultiplier;
   }
 
   void _handleWheelSpin() {
